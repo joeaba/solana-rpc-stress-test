@@ -9,10 +9,15 @@ get_leader_schedule = {"jsonrpc":"2.0","id":1, "method":"getLeaderSchedule"}
 get_vote_accounts = {"jsonrpc":"2.0","id":1, "method":"getVoteAccounts"}
 get_stake_activation = {"jsonrpc":"2.0","id":1, "method":"getStakeActivation", "params": []}
 get_cluster_nodes = {"jsonrpc":"2.0", "id":1, "method":"getClusterNodes"}
+get_epoch_schedule =  {"jsonrpc":"2.0","id":1, "method":"getEpochSchedule"}
+get_epoch_info = {"jsonrpc":"2.0","id":1, "method":"getEpochInfo"}
+get_largest_accounts = {"jsonrpc":"2.0","id":1, "method":"getLargestAccounts"}
+get_confirmed_blocks = {"jsonrpc": "2.0","id":1,"method":"getConfirmedBlocks","params":[]}
+minimum_ledger_slot = {"jsonrpc":"2.0","id":1, "method":"minimumLedgerSlot"}
 
 # A user of wallets
 class WalletUser(HttpUser):
-  weight = 10 # wallet user 10x
+  weight = 5 # wallet user 10x
   wait_time = between(0.1,1)
 
   @task(10)
@@ -83,3 +88,29 @@ class ExplorerUser(HttpUser):
   def get_cluster_nodes(self):
     req = get_cluster_nodes
     self.client.post('/', data=json.dumps(req),  headers={'content-type': 'application/json'}, name='getLeaderSchedule')
+
+  @task
+  def get_epoch_schedule(self):
+    req = get_epoch_schedule
+    self.client.post('/', data=json.dumps(req),  headers={'content-type': 'application/json'}, name='getEpochSchedule')
+
+  @task 
+  def get_epoch_info(self):
+    req = get_epoch_info
+    self.client.post('/', data=json.dumps(req),  headers={'content-type': 'application/json'}, name='getEpochInfo')
+
+  @task
+  def get_largest_accounts(self):
+    req = get_largest_accounts
+    self.client.post('/', data=json.dumps(req),  headers={'content-type': 'application/json'}, name='getLargestAccounts')
+
+  # @ todo load start slot end slot
+  def get_confirmed_blocks(self):
+    req = get_confirmed_blocks
+    req["params"] = [5,10]
+    self.client.post('/', data=json.dumps(req),  headers={'content-type': 'application/json'}, name='getConfirmedBlocks')
+
+  @task
+  def minimum_ledger_slot(self):
+    req = minimum_ledger_slot
+    self.client.post('/', data=json.dumps(req),  headers={'content-type': 'application/json'}, name='minimumLedgerSlot')
