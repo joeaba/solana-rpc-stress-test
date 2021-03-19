@@ -15,7 +15,7 @@ locust_regions:
   - ams3
 
 # number of nodes per region
-locust_nodes_per_region: 2
+locust_nodes_per_region: 3
 
 # master host and master ip
 locust_master: home.brkn.nl
