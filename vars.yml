@@ -11,7 +11,8 @@ locust_regions:
   - nyc3
   - sgp1
   - blr1
-  - sfo1
+  - sfo3
+  - ams3
 
 # number of nodes per region
 locust_nodes_per_region: 2
