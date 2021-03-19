@@ -9,7 +9,7 @@
         state: absent
         name: "locust-{{ item.0 }}-{{ item.1 }}"
         unique_name: yes
-      loop: "{{ locust_regions|product(range(0,locust_nodes,1))|list }}"
+      loop: "{{ locust_regions|product(range(0,locust_nodes_per_region,1))|list }}"
       register: do
     - debug: var=do
     - name: add digital ocean workers to inventory
