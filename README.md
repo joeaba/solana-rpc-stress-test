@@ -23,3 +23,10 @@ Then run the launch command `ansible-playbook launch-workers.yml`
 
 When you are done running the test, run the command: `ansible-playbook terminate-workers.yml`
 
+## Status of worker nodes
+
+Run ./status.sh to get the systemctl status locust on all worker nodes.
+
+## Restart locust on workers
+
+Run ./restart-workers.sh to restart all worker nodes.

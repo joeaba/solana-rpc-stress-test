@@ -14,9 +14,18 @@
         region: "{{ item.0 }}"
         ssh_keys: "{{ locust_ssh_keys }}"
         unique_name: yes
+        tags:
+          - locust
       loop: "{{ locust_regions|product(range(0,locust_nodes_per_region,1))|list }}"
       register: do
     - debug: var=do
+    - name: tag droplets
+      digital_ocean_tag:
+        name: locust
+        resource_id: "{{ item.data.droplet.id }}"
+        state: present
+      when: item.data is defined
+      with_items: "{{ do.results }}"
     - name: add digital ocean workers to inventory
       add_host:
         name: "{{ item.data.ip_address }}"
@@ -25,6 +34,7 @@
         ansible_python_interpreter: /usr/bin/python3
       when: item.data is defined
       with_items: "{{ do.results }}"
+
 
 - hosts: do
   remote_user: root
@@ -54,15 +64,23 @@
       copy: 
         src: locust.py
         dest: /root/locust.py
+      register: locust_file
   
     - name: Copy service file
       template: 
         src: locust.service
         dest: /etc/systemd/system/locust.service
+      register: service_template
 
-    - name: Systemd reload
+    - name: Systemd restart
       systemd:
         daemon_reload: yes
         name: locust
         state: restarted
+      when: locust_file is changed or service_template is changed
+
+    - name: Ensure locust is running
+      systemd:
+        name: locust
+        state: started
         enabled: yes
