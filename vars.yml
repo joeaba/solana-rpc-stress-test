@@ -1,9 +1,21 @@
+# node size - get via do/get-sizes.sh
 locust_node_size: s-1vcpu-1gb
+
+# ssh keys - get via do/get-keys.sh
 locust_ssh_keys:
   - 29841906 # linus
   - 29841904 # marco
+
+# which regions you want to launch in
 locust_regions:
   - nyc3
+  - sgp1
+  - blr1
+  - sfo1
+
+# number of nodes per region
 locust_nodes_per_region: 2
+
+# master host and master ip
 locust_master: home.brkn.nl
 locust_master_port: 5557

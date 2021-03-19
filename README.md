@@ -3,7 +3,23 @@
 To run:
 
 1. `pip install locust`
-2. `locust -f locust-test.py`
+2. `locust -f locust.py`
 3. visit http://localhost:8089
 4. enter endpoint e.g. http://sg1.solrpc.com:8080
+
+## Launching worker nodes
+
+Before launching worker nodes, make sure you have a master node ready to run (start with `locust -f locust.py --master`). It should have a public IP accessible.
+
+To launch worker nodes you need a digital ocean API token - https://cloud.digitalocean.com/account/api/tokens
+
+Then specify the environment variable `DO_API_TOKEN`,  e.g. `export DO_API_TOKEN=<token>`
+
+Verify settings for your launch in `vars.yml`
+
+Then run the launch command `ansible-playbook launch-workers.yml`
+
+## Terminating worker nodes
+
+When you are done running the test, run the command: `ansible-playbook terminate-workers.yml`
 
