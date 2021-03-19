@@ -1,0 +1,15 @@
+[Unit]
+Description=Locust Worker
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=2
+
+ExecStart=/usr/local/bin/locust -f /root/locust.py --worker --master-host="{{ locust_master }}" --master-port="{{ locust_master_port }}"
+
+WorkingDirectory=/root
+
+[Install]
+WantedBy=default.target

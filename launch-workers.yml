@@ -1,0 +1,71 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+    locust_master: 192.168.0.14
+    locust_master_port: 5557
+    locust_regions:
+      - nyc3
+    locust_nodes: 2
+  tasks:
+    - name: create digital ocean workers
+      digital_ocean_droplet:
+        state: present
+        name: locust-{{ item.0 }}-{{ item.1 }}
+        private_networking: no
+        size: s-1vcpu-1gb
+        image_id: ubuntu-20-04-x64
+        region: nyc3
+        ssh_keys:
+          - 29840775
+        unique_name: yes
+      loop: "{{ locust_regions|product(range(0,locust_nodes,1))|list }}"
+      register: do
+    - debug: var=do
+    - name: add digital ocean workers to inventory
+      add_host:
+        name: "{{ item.data.ip_address }}"
+        groups: do
+        ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
+        ansible_python_interpreter: /usr/bin/python3
+      when: item.data is defined
+      with_items: "{{ do.results }}"
+
+- hosts: do
+  remote_user: root
+  gather_facts: False
+  tasks:
+    - name: Wait for hosts to become reachable
+      wait_for_connection:
+
+    - name: install ansible prereqs
+      script: ansible_prereqs_3.sh creates=/root/.ansible_prereqs_installed
+      register: ans_preq
+      changed_when: "'CHANGE' in ans_preq.stdout"
+
+    - name: Install pip
+      apt:
+        pkg: ['python3-pip']
+        state: present
+
+    - name: Install locust
+      pip:
+        name: locust
+        state: present
+
+    - name: Copy locust file
+      copy: 
+        src: locust.py
+        dest: /root/locust.py
+  
+    - name: Copy service file
+      template: 
+        src: locust.service
+        dest: /etc/systemd/system/locust.service
+
+    - name: Systemd reload
+      systemd:
+        daemon_reload: yes
+        name: locust
+        state: started
+        enabled: yes
