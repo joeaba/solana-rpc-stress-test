@@ -1,0 +1,9 @@
+locust_node_size: s-1vcpu-1gb
+locust_ssh_keys:
+  - 29841906 # linus
+  - 29841904 # marco
+locust_regions:
+  - nyc3
+locust_nodes_per_region: 2
+locust_master: home.brkn.nl
+locust_master_port: 5557
