@@ -1,0 +1,22 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files: 
+    - vars.yml
+  tasks:
+    - name: delete digital ocean workers
+      digital_ocean_droplet:
+        state: absent
+        name: "locust-{{ item.0 }}-{{ item.1 }}"
+        unique_name: yes
+      loop: "{{ locust_regions|product(range(0,locust_nodes,1))|list }}"
+      register: do
+    - debug: var=do
+    - name: add digital ocean workers to inventory
+      add_host:
+        name: "{{ item.data.ip_address }}"
+        groups: do
+        ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
+        ansible_python_interpreter: /usr/bin/python3
+      when: item.data is defined
+      with_items: "{{ do.results }}"

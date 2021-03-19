@@ -1,25 +1,20 @@
 - hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    locust_master: 192.168.0.14
-    locust_master_port: 5557
-    locust_regions:
-      - nyc3
-    locust_nodes: 2
+  vars_files: 
+    - vars.yml
   tasks:
     - name: create digital ocean workers
       digital_ocean_droplet:
         state: present
-        name: locust-{{ item.0 }}-{{ item.1 }}
+        name: "locust-{{ item.0 }}-{{ item.1 }}"
         private_networking: no
-        size: s-1vcpu-1gb
+        size: "{{ locust_node_size }}"
         image_id: ubuntu-20-04-x64
-        region: nyc3
-        ssh_keys:
-          - 29840775
+        region: "{{ item.0 }}"
+        ssh_keys: "{{ locust_ssh_keys }}"
         unique_name: yes
-      loop: "{{ locust_regions|product(range(0,locust_nodes,1))|list }}"
+      loop: "{{ locust_regions|product(range(0,locust_nodes_per_region,1))|list }}"
       register: do
     - debug: var=do
     - name: add digital ocean workers to inventory
@@ -34,6 +29,8 @@
 - hosts: do
   remote_user: root
   gather_facts: False
+  vars_files: 
+    - vars.yml
   tasks:
     - name: Wait for hosts to become reachable
       wait_for_connection:
@@ -67,5 +64,5 @@
       systemd:
         daemon_reload: yes
         name: locust
-        state: started
+        state: restarted
         enabled: yes
