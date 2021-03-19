@@ -2,7 +2,10 @@
 
 To run:
 
-1. `pip install locust`
+1. Install virtualenv through `easy_install virtualenv` or through `pip install virtualenv`
+2. Create virtualenv `virtualenv ~/ansible2.8`
+3. Activate virtualenv `source ~/ansible2.8/bin/activate`
+4. Install ansible and locust `pip install -r requirements.txt`
 2. `locust -f locust.py`
 3. visit http://localhost:8089
 4. enter endpoint e.g. http://sg1.solrpc.com:8080

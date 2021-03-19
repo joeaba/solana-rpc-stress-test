@@ -1,0 +1,6 @@
+ansible==2.8.12
+pyyaml
+packaging
+passlib
+jmespath 
+locust
