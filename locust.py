@@ -131,7 +131,7 @@ class TrafficSimulator(HttpUser):
     self.rpc("getFees")
 
   def on_start(self):
-    # @TODO randomise the wallet pubkey
+    # Randomly select values
     self.stake_account = random.choice(stake_accounts)
     self.wallet = random.choice(wallets)
     self.wallets = random.sample(wallets,2)
@@ -142,6 +142,7 @@ class TrafficSimulator(HttpUser):
     self.transaction_signature = random.choice(transaction_signatures)
     self.mint = random.choice(mints)
    
+    # Get minimum stored ledger slot
     with self.client.post('/', data=self.get_req_json("minimumLedgerSlot"),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
       json_data = response.json()
       if "error" in json_data:
@@ -149,12 +150,14 @@ class TrafficSimulator(HttpUser):
         raise StopUser()
       self.minimum_slot = json_data["result"]
 
+    # Fetch the epoch info to find slots/blocks for RCPcalls
     with self.client.post('/', data=self.get_req_json("getEpochInfo"),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
       json_data = response.json()
       if "error" in json_data:
         print(json_data["error"])
         raise StopUser()
         
+      # Get epoch info 
       absolute_slot = json_data["result"]["absoluteSlot"]
       slot_index = json_data["result"]["slotIndex"]
       block_height = json_data["result"]["blockHeight"]
@@ -162,7 +165,7 @@ class TrafficSimulator(HttpUser):
       if self.minimum_slot > first_slot:
         first_slot = self.minimum_slot
 
-      #self.block = block_height-random.randint(1,1000) # get a random block 1 to 1000 blocks back
+      #  Find a random valid block
       for i in range(100):
         self.block = random.randint(first_slot, absolute_slot-1)
         with self.client.post('/', data=self.get_req_json("getConfirmedBlock", [self.block]),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
@@ -172,6 +175,7 @@ class TrafficSimulator(HttpUser):
           elif(i == 99): # couldn't find a valid block 
             raise StopUser()
 
+      # Pick a random block/slot range
       self.start_block = random.randint(first_slot, absolute_slot-1)
       self.end_block = random.randint(self.start_block+1, absolute_slot)
       if self.end_block < self.start_block:
