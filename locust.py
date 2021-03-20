@@ -163,12 +163,14 @@ class TrafficSimulator(HttpUser):
         first_slot = self.minimum_slot
 
       #self.block = block_height-random.randint(1,1000) # get a random block 1 to 1000 blocks back
-      while(1):
+      for i in range(100):
         self.block = random.randint(first_slot, absolute_slot-1)
         with self.client.post('/', data=self.get_req_json("getConfirmedBlock", [self.block]),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
           conf_block = response.json()
           if "result" in conf_block and not "error" in conf_block:
             break # wait until we find a valid block not slipped slot
+          elif(i == 99): # couldn't find a valid block 
+            raise StopUser()
 
       self.start_block = random.randint(first_slot, absolute_slot-1)
       self.end_block = random.randint(self.start_block+1, absolute_slot)
