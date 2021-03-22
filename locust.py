@@ -136,6 +136,13 @@ class ExplorerUser(SolanaUser):
   def minimum_ledger_slot(self):
     self.rpc("minimumLedgerSlot")
 
+
+  # This triggers big table lookup
+  @task
+  def get_confirmed_blocks(self):
+    self.rpc("getConfirmedBlocks", [5, 10])
+
+
 # A generic traffic simulator user
 class TrafficSimulatorUser(SolanaUser):
   weight = 10
