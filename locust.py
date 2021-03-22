@@ -32,13 +32,18 @@ class SolanaUser(HttpUser):
       req["params"] = params
     return json.dumps(req)
 
-  def rpc(self, method, params=[]):
-   with self.client.post('/', data=self.get_req_json(method,params),  headers={'content-type': 'application/json'}, name=method, catch_response=True) as response:
+  def rpc(self, method, params=[], methodSuffix=""):
+   with self.client.post('/', data=self.get_req_json(method,params),  headers={'content-type': 'application/json'}, name=method+methodSuffix, catch_response=True) as response:
       try: 
-        json_data = response.json()
-        if "error" in json_data:
-          response.failure(json_data["error"]["message"])
+        if response.text:
+          json_data = response.json()
+          if "error" in json_data:
+            response.failure(json_data["error"]["message"])
+        else:
+          response.failure("Request returned empty data")
       except json.decoder.JSONDecodeError as e:
+        response.failure("Invalid json returned: "+response.text+" "+str(e))
+      except ValueError as e:
         response.failure("Invalid json returned: "+response.text+" "+str(e))
 
   def on_start(self):
@@ -55,15 +60,31 @@ class SolanaUser(HttpUser):
    
     # Get minimum stored ledger slot
     with self.client.post('/', data=self.get_req_json("minimumLedgerSlot"),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
-      json_data = response.json()
-      if "error" in json_data:
-        print(json_data["error"])
+      try:
+        if not response.text:
+          print("empty response: minimumLedgerSlot: "+response.text)
+          raise StopUser()
+
+        json_data = response.json()
+        if "error" in json_data:
+          print(json_data["error"])
+          raise StopUser()
+        self.minimum_slot = json_data["result"]
+      except json.decoder.JSONDecodeError as e:
+        print(response.text)
         raise StopUser()
-      self.minimum_slot = json_data["result"]
+      except ValueError as e:
+        print(response.text)
+        raise StopUser()
+
 
     # Fetch the epoch info to find slots/blocks for RCPcalls
     with self.client.post('/', data=self.get_req_json("getEpochInfo"),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
       try:
+        if not response.text:
+          print("empty response: getEpochInfo: "+response.text)
+          raise StopUser()
+
         json_data = response.json()
         if "error" in json_data:
           print(json_data["error"])
@@ -82,12 +103,19 @@ class SolanaUser(HttpUser):
           self.block = random.randint(first_slot, absolute_slot-1)
           with self.client.post('/', data=self.get_req_json("getConfirmedBlock", [self.block]),  headers={'content-type': 'application/json'}, catch_response=True, name="setupBlocks") as response:
             try: 
-              conf_block = response.json()
-              if "result" in conf_block and not "error" in conf_block:
-                break # wait until we find a valid block not slipped slot
-              elif(i == 99): # couldn't find a valid block 
+              if response.text:
+                conf_block = response.json()
+                if "result" in conf_block and not "error" in conf_block:
+                  break # wait until we find a valid block not slipped slot
+                elif(i == 99): # couldn't find a valid block 
+                  raise StopUser()
+              else:
+                print("Empty response: getConfirmedBlock "+response.text)
                 raise StopUser()
             except json.decoder.JSONDecodeError as e:
+              print(response.text)
+              raise StopUser()
+            except ValueError as e:
               print(response.text)
               raise StopUser()
 
@@ -99,10 +127,29 @@ class SolanaUser(HttpUser):
       except json.decoder.JSONDecodeError as e:
         print(response.text)
         raise StopUser()
+      except ValueError as e:
+        print(response.text)
+        raise StopUser()
+
+# Heavy calls
+class HeavyCalls(SolanaUser):
+  weight = 1
+
+  @task
+  def get_leader_schedule(self):
+    self.rpc("getLeaderSchedule")
+
+  @task
+  def get_largest_accounts(self):
+    self.rpc("getLargestAccounts")
+
+  @task
+  def get_program_accounts(self):
+    self.rpc("getProgramAccounts", [self.program_key])
 
 # A solana explorer type user
 class ExplorerUser(SolanaUser):
-  weight = 1
+  weight = 10
 
   @task
   def get_slot(self):
@@ -113,20 +160,12 @@ class ExplorerUser(SolanaUser):
     self.rpc("getSlotLeader")
 
   @task
-  def get_leader_schedule(self):
-    self.rpc("getLeaderSchedule")
-
-  @task
   def get_cluster_nodes(self):
     self.rpc("getClusterNodes")
 
   @task
   def get_epoch_schedule(self):
     self.rpc("getEpochSchedule")
-
-  @task
-  def get_largest_accounts(self):
-    self.rpc("getLargestAccounts")
 
   @task
   def get_epoch_info(self):
@@ -136,16 +175,15 @@ class ExplorerUser(SolanaUser):
   def minimum_ledger_slot(self):
     self.rpc("minimumLedgerSlot")
 
-
   # This triggers big table lookup
   @task
   def get_confirmed_blocks(self):
-    self.rpc("getConfirmedBlocks", [5, 10])
+    self.rpc("getConfirmedBlocks", [5, 10], "BigTable")
 
 
 # A generic traffic simulator user
 class TrafficSimulatorUser(SolanaUser):
-  weight = 10
+  weight = 100
 
   @task(52)
   def get_account_info(self):
@@ -186,10 +224,6 @@ class TrafficSimulatorUser(SolanaUser):
   @task(1)
   def get_slot(self):
     self.rpc("getSlot")
-
-  @task(1)
-  def get_program_accounts(self):
-    self.rpc("getProgramAccounts", [self.program_key])
 
   @task(1)
   def get_version(self):
